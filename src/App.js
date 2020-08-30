@@ -17,12 +17,19 @@ const stateMachine = {
   },
 };
 
+const formatResult = ({ className, probability }) => {
+  return (
+    <li key={className}>{`${className}:${(probability * 100).toFixed(2)}%`}</li>
+  );
+};
+
 const reducer = (currentState, event) =>
   stateMachine.states[currentState].on[event] || stateMachine.initial;
 
 const App = () => {
   const [model, setModel] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
+  const [results, setResults] = useState([]);
 
   const [state, dispatch] = useReducer(reducer, stateMachine.initial);
   const next = () => dispatch("next");
@@ -33,6 +40,16 @@ const App = () => {
     next();
     const mobilenetModel = await mobilenet.load();
     setModel(mobilenetModel);
+    next();
+  };
+  const identify = async () => {
+    next();
+    const results = await model.classify(imageRef.current);
+    setResults(results);
+    next();
+  };
+  const handleReset = () => {
+    setResults([]);
     next();
   };
   const buttonProps = {
@@ -48,9 +65,12 @@ const App = () => {
       text: "Upload photo",
       action: () => inputRef.current.click(),
     },
-    ready: { text: "Identify", action: () => {} },
+    ready: {
+      text: "Identify",
+      action: identify,
+    },
     classifying: { text: "Identifying", action: () => {} },
-    complete: { text: "Reset", action: () => {} },
+    complete: { text: "Reset", action: handleReset },
   };
 
   const handleUpdate = (e) => {
@@ -62,12 +82,13 @@ const App = () => {
     }
   };
   const { showImage = false } = stateMachine.states[state];
-
-  console.log(imageUrl);
-
+  // console.log(results);
   return (
     <div className="App">
       {showImage && <img src={imageUrl} alt="Upload-Preview" ref={imageRef} />}
+      {results.length > 0 && (
+        <ul>{results.map((result) => formatResult(result))}</ul>
+      )}
 
       <input
         type="file"
