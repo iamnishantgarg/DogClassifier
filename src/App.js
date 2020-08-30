@@ -22,17 +22,18 @@ const reducer = (currentState, event) =>
 
 const App = () => {
   const [model, setModel] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null);
+
   const [state, dispatch] = useReducer(reducer, stateMachine.initial);
   const next = () => dispatch("next");
+  const inputRef = useRef();
+  const imageRef = useRef();
+
   const loadModel = async () => {
-    try {
-      next();
-      const mobilenetModel = await mobilenet.load();
-      setModel(mobilenetModel);
-      next();
-    } catch (error) {
-      console.log(error);
-    }
+    next();
+    const mobilenetModel = await mobilenet.load();
+    setModel(mobilenetModel);
+    next();
   };
   const buttonProps = {
     initial: {
@@ -43,14 +44,38 @@ const App = () => {
       text: "Loading model...",
       action: () => {},
     },
-    awaitingUpload: { text: "Upload photo", action: () => {} },
+    awaitingUpload: {
+      text: "Upload photo",
+      action: () => inputRef.current.click(),
+    },
     ready: { text: "Identify", action: () => {} },
     classifying: { text: "Identifying", action: () => {} },
     complete: { text: "Reset", action: () => {} },
   };
+
+  const handleUpdate = (e) => {
+    const { files } = e.target;
+    if (files.length > 0) {
+      const url = URL.createObjectURL(files[0]);
+      setImageUrl(url);
+      next();
+    }
+  };
+  const { showImage = false } = stateMachine.states[state];
+
+  console.log(imageUrl);
+
   return (
     <div className="App">
-      <input type="file" accept="image/*" capture="camera" />
+      {showImage && <img src={imageUrl} alt="Upload-Preview" ref={imageRef} />}
+
+      <input
+        type="file"
+        accept="image/*"
+        capture="camera"
+        ref={inputRef}
+        onChange={handleUpdate}
+      />
       <button onClick={buttonProps[state].action}>
         {buttonProps[state].text}
       </button>
